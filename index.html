@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bakterien Simulation</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+        }
+        canvas {
+            background-color: black;
+            display: block;
+            margin: 20px auto;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: darkred;
+        }
+        #time {
+            font-size: 24px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bakterien Simulation</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="time"></div>
+    <div id="bacteriaCount"></div>
+    <button onclick="resetSimulation()">Reset</button>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const SCREEN_WIDTH = canvas.width;
+        const SCREEN_HEIGHT = canvas.height;
+
+        const BACTERIA_COLOR = "green";
+        const BUTTON_COLOR = "red";
+        const TEXT_COLOR = "white";
+
+        let bacteriaList = [];
+        let lastCloneTime = Date.now();
+
+        class Bacteria {
+            constructor() {
+                this.x = Math.random() * (SCREEN_WIDTH - 20);
+                this.y = Math.random() * (SCREEN_HEIGHT - 20);
+                this.width = 20;
+                this.height = 10;
+                this.color = BACTERIA_COLOR;
+                this.speed = 2;
+                this.direction = [
+                    Math.random() < 0.5 ? -1 : 1,
+                    Math.random() < 0.5 ? -1 : 1
+                ];
+            }
+
+            move() {
+                this.x += this.direction[0] * this.speed;
+                this.y += this.direction[1] * this.speed;
+
+                // Prevent bacteria from going off-screen
+                if (this.x < 0 || this.x + this.width > SCREEN_WIDTH) {
+                    this.direction[0] = -this.direction[0];
+                }
+                if (this.y < 0 || this.y + this.height > SCREEN_HEIGHT) {
+                    this.direction[1] = -this.direction[1];
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+        }
+
+        // Create a new bacteria object
+        function cloneBacteria() {
+            bacteriaList.forEach(() => {
+                bacteriaList.push(new Bacteria());
+            });
+        }
+
+        function resetSimulation() {
+            bacteriaList = [new Bacteria()];
+        }
+
+        function updateTime() {
+            const time = new Date();
+            document.getElementById('time').innerText = `Zeit: ${time.toLocaleTimeString()}`;
+            document.getElementById('bacteriaCount').innerText = `Bakterien: ${bacteriaList.length}`;
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+            // Move and draw bacteria
+            bacteriaList.forEach(bacteria => {
+                bacteria.move();
+                bacteria.draw();
+            });
+
+            // Clone bacteria every 5 seconds
+            if (Date.now() - lastCloneTime >= 5000) {
+                cloneBacteria();
+                lastCloneTime = Date.now();
+            }
+
+            updateTime();
+
+            // Loop the game
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start with one bacteria
+        bacteriaList.push(new Bacteria());
+
+        // Start the game loop
+        gameLoop();
+    </script>
+</body>
+</html>
