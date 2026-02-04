@@ -6,61 +6,82 @@
     <title>Bakterien Simulation</title>
     <style>
         body {
-            background-color: black;
+            background-color: #111;
             color: white;
             font-family: Arial, sans-serif;
-            text-align: center;
             margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
         }
         canvas {
-            background-color: black;
-            display: block;
-            margin: 20px auto;
+            background-color: #111;
+            border: 2px solid #444;
         }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: red;
+        #resetButton {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background-color: #ff2d2d;
             color: white;
+            font-size: 18px;
             border: none;
             cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s ease;
         }
-        button:hover {
-            background-color: darkred;
+        #resetButton:hover {
+            background-color: #ff1a1a;
         }
-        #time {
-            font-size: 24px;
-            margin: 10px;
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            color: white;
+            font-family: 'Arial', sans-serif;
         }
     </style>
 </head>
 <body>
     <h1>Bakterien Simulation</h1>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div id="time"></div>
-    <div id="bacteriaCount"></div>
-    <button onclick="resetSimulation()">Reset</button>
+    <canvas id="gameCanvas"></canvas>
+    <div id="info">
+        <div id="time"></div>
+        <div id="bacteriaCount"></div>
+    </div>
+    <button id="resetButton">Reset</button>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Dynamische Canvas-Größe
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
         const SCREEN_WIDTH = canvas.width;
         const SCREEN_HEIGHT = canvas.height;
 
-        const BACTERIA_COLOR = "green";
-        const BUTTON_COLOR = "red";
+        const BACTERIA_COLOR = "rgba(0, 255, 0, 0.7)";
+        const BUTTON_COLOR = "#ff2d2d";
         const TEXT_COLOR = "white";
 
         let bacteriaList = [];
         let lastCloneTime = Date.now();
 
+        // Bakterien Klasse
         class Bacteria {
             constructor() {
                 this.x = Math.random() * (SCREEN_WIDTH - 20);
                 this.y = Math.random() * (SCREEN_HEIGHT - 20);
-                this.width = 20;
-                this.height = 10;
+                this.size = 10 + Math.random() * 15; // Größe der Bakterien variiert
                 this.color = BACTERIA_COLOR;
                 this.speed = 2;
                 this.direction = [
@@ -73,63 +94,73 @@
                 this.x += this.direction[0] * this.speed;
                 this.y += this.direction[1] * this.speed;
 
-                // Prevent bacteria from going off-screen
-                if (this.x < 0 || this.x + this.width > SCREEN_WIDTH) {
+                // Verhindern, dass die Bakterie den Bildschirm verlässt
+                if (this.x < 0 || this.x + this.size > SCREEN_WIDTH) {
                     this.direction[0] = -this.direction[0];
                 }
-                if (this.y < 0 || this.y + this.height > SCREEN_HEIGHT) {
+                if (this.y < 0 || this.y + this.size > SCREEN_HEIGHT) {
                     this.direction[1] = -this.direction[1];
                 }
             }
 
             draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.fill();
+                ctx.strokeStyle = "black";
+                ctx.stroke();
             }
         }
 
-        // Create a new bacteria object
+        // Bakterien klonen
         function cloneBacteria() {
             bacteriaList.forEach(() => {
                 bacteriaList.push(new Bacteria());
             });
         }
 
+        // Simulation zurücksetzen
         function resetSimulation() {
             bacteriaList = [new Bacteria()];
         }
 
-        function updateTime() {
+        // Zeit und Bakterienzahl aktualisieren
+        function updateInfo() {
             const time = new Date();
             document.getElementById('time').innerText = `Zeit: ${time.toLocaleTimeString()}`;
             document.getElementById('bacteriaCount').innerText = `Bakterien: ${bacteriaList.length}`;
         }
 
+        // Reset Button Event Listener
+        document.getElementById('resetButton').addEventListener('click', resetSimulation);
+
+        // Haupt-Spiel Schleife
         function gameLoop() {
             ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-            // Move and draw bacteria
+            // Bakterien bewegen und zeichnen
             bacteriaList.forEach(bacteria => {
                 bacteria.move();
                 bacteria.draw();
             });
 
-            // Clone bacteria every 5 seconds
+            // Bakterien alle 5 Sekunden klonen
             if (Date.now() - lastCloneTime >= 5000) {
                 cloneBacteria();
                 lastCloneTime = Date.now();
             }
 
-            updateTime();
+            updateInfo();
 
-            // Loop the game
+            // Weiteres Loop
             requestAnimationFrame(gameLoop);
         }
 
-        // Start with one bacteria
+        // Starten mit einem Bakterium
         bacteriaList.push(new Bacteria());
 
-        // Start the game loop
+        // Spiel-Loop starten
         gameLoop();
     </script>
 </body>
