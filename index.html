@@ -1,44 +1,48 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bakterien Simulation</title>
-    <style>
-        body {
-            background-color: #111;
-            color: white;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
-        }
-        #resetButton {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            background-color: #ff2d2d;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        #info {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bakterien Simulation</title>
+
+<style>
+body {
+    margin: 0;
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+canvas {
+    display: block;
+}
+#info {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+}
+#resetButton {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background: #ff2d2d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+</style>
 </head>
+
 <body>
 <canvas id="gameCanvas"></canvas>
+
 <div id="info">
-    <div id="time"></div>
-    <div id="bacteriaCount"></div>
+    <div id="bioTime">Zeit: 0 s</div>
+    <div id="count">Bakterien: 1</div>
 </div>
+
 <button id="resetButton">Reset</button>
 
 <script>
@@ -49,22 +53,28 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let bacteriaList = [];
+let biologicalTime = 0; // Sekunden (realistische Zeit)
+
+// realistische Teilungszeit (z.B. 20 Minuten)
+const REAL_DIVISION_TIME = 20 * 60; // Sekunden
 
 class Bacteria {
     constructor(x, y, size) {
         this.x = x;
         this.y = y;
         this.size = size;
-        this.speed = 1.2;
+
         this.dx = Math.random() < 0.5 ? -1 : 1;
         this.dy = Math.random() < 0.5 ? -1 : 1;
+        this.speed = 1.2;
 
-        // jede Bakterie hat ihren eigenen Teilungszeitpunkt
-        this.nextDivideTime = Date.now() + this.randomDivideDelay();
+        // eigener realistischer Teilungszeitpunkt
+        this.nextDivide = performance.now() + this.randomDelay();
     }
 
-    randomDivideDelay() {
-        return 2000 + Math.random() * 2000; // 3–7 Sekunden
+    randomDelay() {
+        // asynchron: ±30%
+        return (REAL_DIVISION_TIME * 1000) * (0.7 + Math.random() * 0.6);
     }
 
     move() {
@@ -83,15 +93,18 @@ class Bacteria {
     }
 
     tryDivide(now) {
-        if (now < this.nextDivideTime) return [this];
+        if (now < this.nextDivide) return [this];
+
+        // biologische Zeit vergeht
+        biologicalTime += REAL_DIVISION_TIME;
 
         const newSize = this.size / 1.1;
         const offset = newSize + 1;
 
-        const b1 = new Bacteria(this.x - offset, this.y, newSize);
-        const b2 = new Bacteria(this.x + offset, this.y, newSize);
-
-        return [b1, b2];
+        return [
+            new Bacteria(this.x - offset, this.y, newSize),
+            new Bacteria(this.x + offset, this.y, newSize)
+        ];
     }
 }
 
@@ -99,21 +112,22 @@ function resetSimulation() {
     bacteriaList = [
         new Bacteria(canvas.width / 2, canvas.height / 2, 18)
     ];
+    biologicalTime = 0;
 }
 
 document.getElementById("resetButton").onclick = resetSimulation;
 
-function updateInfo() {
-    document.getElementById("time").innerText =
-        "Zeit: " + new Date().toLocaleTimeString();
-    document.getElementById("bacteriaCount").innerText =
-        "Bakterien: " + bacteriaList.length;
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return `${h}h ${m}m ${s}s`;
 }
 
 function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const now = Date.now();
+    const now = performance.now();
     let newList = [];
 
     bacteriaList.forEach(b => {
@@ -124,7 +138,11 @@ function loop() {
 
     bacteriaList = newList;
 
-    updateInfo();
+    document.getElementById("bioTime").innerText =
+        "Zeit: " + formatTime(biologicalTime);
+    document.getElementById("count").innerText =
+        "Bakterien: " + bacteriaList.length;
+
     requestAnimationFrame(loop);
 }
 
