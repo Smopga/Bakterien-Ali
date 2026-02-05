@@ -39,7 +39,7 @@ canvas {
 <canvas id="gameCanvas"></canvas>
 
 <div id="info">
-    <div id="bioTime">Zeit: 0s</div>
+    <div id="bioTime">Zeit: 0m</div>
     <div id="count">Bakterien: 1</div>
 </div>
 
@@ -68,12 +68,12 @@ class Bacteria {
         this.dy = Math.random() < 0.5 ? -1 : 1;
         this.speed = 1.2;
 
-        // ⏱️ schnelle Simulation: 0–2 Sekunden
-        this.nextDivide = performance.now() + this.randomSimDelay();
+        // ⏱️ echte Zeit: 1–5 Sekunden
+        this.nextDivide = performance.now() + this.randomRealDelay();
     }
 
-    randomSimDelay() {
-        return Math.random() * 2000; // 0–2 Sekunden
+    randomRealDelay() {
+        return 1000 + Math.random() * 4000; // 1–5 Sekunden
     }
 
     move() {
@@ -94,7 +94,7 @@ class Bacteria {
     tryDivide(now) {
         if (now < this.nextDivide) return [this];
 
-        // ⏳ biologische Zeit vergeht (20 min pro Teilung)
+        // ⏳ biologische Zeit vergeht
         biologicalTime += REAL_TIME_PER_DIVISION;
 
         const newSize = this.size / 1.1;
@@ -121,7 +121,7 @@ function formatTime(seconds) {
     const h = Math.floor((seconds % 86400) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
 
-    if (days > 0) return `${days}d ${h}h ${m}m`;
+    if (days > 0) return `${days}d ${h}h`;
     if (h > 0) return `${h}h ${m}m`;
     return `${m}m`;
 }
