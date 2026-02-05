@@ -10,13 +10,10 @@
             color: white;
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
             overflow: hidden;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             flex-direction: column;
+            align-items: center;
         }
         canvas {
             background-color: #111;
@@ -26,26 +23,17 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 15px 25px;
+            padding: 12px 20px;
             background-color: #ff2d2d;
             color: white;
-            font-size: 18px;
             border: none;
             cursor: pointer;
             border-radius: 5px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            transition: background-color 0.3s ease;
-        }
-        #resetButton:hover {
-            background-color: #ff1a1a;
         }
         #info {
-            position: absolute;
+            position: fixed;
             top: 10px;
             left: 10px;
-            font-size: 18px;
-            color: white;
-            font-family: 'Arial', sans-serif;
         }
     </style>
 </head>
@@ -59,109 +47,95 @@
     <button id="resetButton">Reset</button>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
 
-        // Dynamische Canvas-Größe
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        const SCREEN_WIDTH = canvas.width;
-        const SCREEN_HEIGHT = canvas.height;
-
-        const BACTERIA_COLOR = "rgba(0, 255, 0, 0.7)";
-        const BUTTON_COLOR = "#ff2d2d";
-        const TEXT_COLOR = "white";
+        const DIVIDE_INTERVAL = 5000;
 
         let bacteriaList = [];
-        let lastCloneTime = Date.now();
+        let lastDivideTime = Date.now();
 
-        // Bakterien Klasse
         class Bacteria {
-            constructor() {
-                this.x = Math.random() * (SCREEN_WIDTH - 20);
-                this.y = Math.random() * (SCREEN_HEIGHT - 20);
-                this.size = 10 + Math.random() * 15; // Größe der Bakterien variiert
-                this.color = BACTERIA_COLOR;
-                this.speed = 2;
-                this.direction = [
-                    Math.random() < 0.5 ? -1 : 1,
-                    Math.random() < 0.5 ? -1 : 1
-                ];
+            constructor(x, y, size) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.speed = 1.5;
+                this.dx = Math.random() < 0.5 ? -1 : 1;
+                this.dy = Math.random() < 0.5 ? -1 : 1;
             }
 
             move() {
-                this.x += this.direction[0] * this.speed;
-                this.y += this.direction[1] * this.speed;
+                this.x += this.dx * this.speed;
+                this.y += this.dy * this.speed;
 
-                // Verhindern, dass die Bakterie den Bildschirm verlässt
-                if (this.x < 0 || this.x + this.size > SCREEN_WIDTH) {
-                    this.direction[0] = -this.direction[0];
-                }
-                if (this.y < 0 || this.y + this.size > SCREEN_HEIGHT) {
-                    this.direction[1] = -this.direction[1];
-                }
+                if (this.x < 0 || this.x > canvas.width) this.dx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.dy *= -1;
             }
 
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
+                ctx.fillStyle = "rgba(0,255,0,0.7)";
                 ctx.fill();
-                ctx.strokeStyle = "black";
-                ctx.stroke();
+            }
+
+            divide() {
+                const newSize = this.size / 2;
+                const offset = newSize + 1;
+
+                return [
+                    new Bacteria(this.x - offset, this.y, newSize),
+                    new Bacteria(this.x + offset, this.y, newSize)
+                ];
             }
         }
 
-        // Bakterien klonen
-        function cloneBacteria() {
-            bacteriaList.forEach(() => {
-                bacteriaList.push(new Bacteria());
+        function divideAllBacteria() {
+            let newList = [];
+            bacteriaList.forEach(b => {
+                newList.push(...b.divide());
             });
+            bacteriaList = newList;
         }
 
-        // Simulation zurücksetzen
         function resetSimulation() {
-            bacteriaList = [new Bacteria()];
+            bacteriaList = [
+                new Bacteria(canvas.width / 2, canvas.height / 2, 16)
+            ];
         }
 
-        // Zeit und Bakterienzahl aktualisieren
+        document.getElementById("resetButton").onclick = resetSimulation;
+
         function updateInfo() {
-            const time = new Date();
-            document.getElementById('time').innerText = `Zeit: ${time.toLocaleTimeString()}`;
-            document.getElementById('bacteriaCount').innerText = `Bakterien: ${bacteriaList.length}`;
+            document.getElementById("time").innerText =
+                "Zeit: " + new Date().toLocaleTimeString();
+            document.getElementById("bacteriaCount").innerText =
+                "Bakterien: " + bacteriaList.length;
         }
 
-        // Reset Button Event Listener
-        document.getElementById('resetButton').addEventListener('click', resetSimulation);
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Haupt-Spiel Schleife
-        function gameLoop() {
-            ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-            // Bakterien bewegen und zeichnen
-            bacteriaList.forEach(bacteria => {
-                bacteria.move();
-                bacteria.draw();
+            bacteriaList.forEach(b => {
+                b.move();
+                b.draw();
             });
 
-            // Bakterien alle 5 Sekunden klonen
-            if (Date.now() - lastCloneTime >= 5000) {
-                cloneBacteria();
-                lastCloneTime = Date.now();
+            if (Date.now() - lastDivideTime >= DIVIDE_INTERVAL) {
+                divideAllBacteria();
+                lastDivideTime = Date.now();
             }
 
             updateInfo();
-
-            // Weiteres Loop
-            requestAnimationFrame(gameLoop);
+            requestAnimationFrame(loop);
         }
 
-        // Starten mit einem Bakterium
-        bacteriaList.push(new Bacteria());
-
-        // Spiel-Loop starten
-        gameLoop();
+        resetSimulation();
+        loop();
     </script>
 </body>
 </html>
