@@ -11,13 +11,9 @@
             font-family: Arial, sans-serif;
             margin: 0;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
         canvas {
-            background-color: #111;
-            border: 2px solid #444;
+            display: block;
         }
         #resetButton {
             position: fixed;
@@ -38,104 +34,102 @@
     </style>
 </head>
 <body>
-    <h1>Bakterien Simulation</h1>
-    <canvas id="gameCanvas"></canvas>
-    <div id="info">
-        <div id="time"></div>
-        <div id="bacteriaCount"></div>
-    </div>
-    <button id="resetButton">Reset</button>
+<canvas id="gameCanvas"></canvas>
+<div id="info">
+    <div id="time"></div>
+    <div id="bacteriaCount"></div>
+</div>
+<button id="resetButton">Reset</button>
 
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-        const DIVIDE_INTERVAL = 5000;
+let bacteriaList = [];
 
-        let bacteriaList = [];
-        let lastDivideTime = Date.now();
+class Bacteria {
+    constructor(x, y, size) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.speed = 1.2;
+        this.dx = Math.random() < 0.5 ? -1 : 1;
+        this.dy = Math.random() < 0.5 ? -1 : 1;
 
-        class Bacteria {
-            constructor(x, y, size) {
-                this.x = x;
-                this.y = y;
-                this.size = size;
-                this.speed = 1.5;
-                this.dx = Math.random() < 0.5 ? -1 : 1;
-                this.dy = Math.random() < 0.5 ? -1 : 1;
-            }
+        // jede Bakterie hat ihren eigenen Teilungszeitpunkt
+        this.nextDivideTime = Date.now() + this.randomDivideDelay();
+    }
 
-            move() {
-                this.x += this.dx * this.speed;
-                this.y += this.dy * this.speed;
+    randomDivideDelay() {
+        return 3000 + Math.random() * 4000; // 3–7 Sekunden
+    }
 
-                if (this.x < 0 || this.x > canvas.width) this.dx *= -1;
-                if (this.y < 0 || this.y > canvas.height) this.dy *= -1;
-            }
+    move() {
+        this.x += this.dx * this.speed;
+        this.y += this.dy * this.speed;
 
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = "rgba(0,255,0,0.7)";
-                ctx.fill();
-            }
+        if (this.x < 0 || this.x > canvas.width) this.dx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.dy *= -1;
+    }
 
-            divide() {
-                const newSize = this.size / 2;
-                const offset = newSize + 1;
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,255,0,0.7)";
+        ctx.fill();
+    }
 
-                return [
-                    new Bacteria(this.x - offset, this.y, newSize),
-                    new Bacteria(this.x + offset, this.y, newSize)
-                ];
-            }
-        }
+    tryDivide(now) {
+        if (now < this.nextDivideTime) return [this];
 
-        function divideAllBacteria() {
-            let newList = [];
-            bacteriaList.forEach(b => {
-                newList.push(...b.divide());
-            });
-            bacteriaList = newList;
-        }
+        const newSize = this.size / 1.1;
+        const offset = newSize + 1;
 
-        function resetSimulation() {
-            bacteriaList = [
-                new Bacteria(canvas.width / 2, canvas.height / 2, 16)
-            ];
-        }
+        const b1 = new Bacteria(this.x - offset, this.y, newSize);
+        const b2 = new Bacteria(this.x + offset, this.y, newSize);
 
-        document.getElementById("resetButton").onclick = resetSimulation;
+        return [b1, b2];
+    }
+}
 
-        function updateInfo() {
-            document.getElementById("time").innerText =
-                "Zeit: " + new Date().toLocaleTimeString();
-            document.getElementById("bacteriaCount").innerText =
-                "Bakterien: " + bacteriaList.length;
-        }
+function resetSimulation() {
+    bacteriaList = [
+        new Bacteria(canvas.width / 2, canvas.height / 2, 18)
+    ];
+}
 
-        function loop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+document.getElementById("resetButton").onclick = resetSimulation;
 
-            bacteriaList.forEach(b => {
-                b.move();
-                b.draw();
-            });
+function updateInfo() {
+    document.getElementById("time").innerText =
+        "Zeit: " + new Date().toLocaleTimeString();
+    document.getElementById("bacteriaCount").innerText =
+        "Bakterien: " + bacteriaList.length;
+}
 
-            if (Date.now() - lastDivideTime >= DIVIDE_INTERVAL) {
-                divideAllBacteria();
-                lastDivideTime = Date.now();
-            }
+function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            updateInfo();
-            requestAnimationFrame(loop);
-        }
+    const now = Date.now();
+    let newList = [];
 
-        resetSimulation();
-        loop();
-    </script>
+    bacteriaList.forEach(b => {
+        b.move();
+        b.draw();
+        newList.push(...b.tryDivide(now));
+    });
+
+    bacteriaList = newList;
+
+    updateInfo();
+    requestAnimationFrame(loop);
+}
+
+resetSimulation();
+loop();
+</script>
 </body>
 </html>
