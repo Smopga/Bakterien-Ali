@@ -39,7 +39,7 @@ canvas {
 <canvas id="gameCanvas"></canvas>
 
 <div id="info">
-    <div id="bioTime">Zeit: 0 s</div>
+    <div id="bioTime">Zeit: 0s</div>
     <div id="count">Bakterien: 1</div>
 </div>
 
@@ -55,8 +55,8 @@ canvas.height = window.innerHeight;
 let bacteriaList = [];
 let biologicalTime = 0; // Sekunden (realistische Zeit)
 
-// realistische Teilungszeit (z.B. 20 Minuten)
-const REAL_DIVISION_TIME = 20 * 60; // Sekunden
+// 🔬 REALISTISCHE ZEIT PRO TEILUNG
+const REAL_TIME_PER_DIVISION = 20 * 60; // 20 Minuten
 
 class Bacteria {
     constructor(x, y, size) {
@@ -68,13 +68,12 @@ class Bacteria {
         this.dy = Math.random() < 0.5 ? -1 : 1;
         this.speed = 1.2;
 
-        // eigener realistischer Teilungszeitpunkt
-        this.nextDivide = performance.now() + this.randomDelay();
+        // ⏱️ schnelle Simulation: 0–2 Sekunden
+        this.nextDivide = performance.now() + this.randomSimDelay();
     }
 
-    randomDelay() {
-        // asynchron: ±30%
-        return (REAL_DIVISION_TIME * 1000) * (0.7 + Math.random() * 0.6);
+    randomSimDelay() {
+        return Math.random() * 2000; // 0–2 Sekunden
     }
 
     move() {
@@ -95,8 +94,8 @@ class Bacteria {
     tryDivide(now) {
         if (now < this.nextDivide) return [this];
 
-        // biologische Zeit vergeht
-        biologicalTime += REAL_DIVISION_TIME;
+        // ⏳ biologische Zeit vergeht (20 min pro Teilung)
+        biologicalTime += REAL_TIME_PER_DIVISION;
 
         const newSize = this.size / 1.1;
         const offset = newSize + 1;
@@ -118,10 +117,13 @@ function resetSimulation() {
 document.getElementById("resetButton").onclick = resetSimulation;
 
 function formatTime(seconds) {
-    const h = Math.floor(seconds / 3600);
+    const days = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    return `${h}h ${m}m ${s}s`;
+
+    if (days > 0) return `${days}d ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
 }
 
 function loop() {
